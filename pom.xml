@@ -29,7 +29,7 @@
     <packaging>pom</packaging>
     <name>killbill-commons</name>
     <description>Kill Bill reusable Java components</description>
-    <url>http://github.com/killbill/killbill-commons</url>
+    <url>http://github.com/rocketlawyer/killbill-commons</url>
     <licenses>
         <license>
             <name>Apache License 2.0</name>
@@ -49,13 +49,13 @@
         <module>automaton</module>
     </modules>
     <scm>
-        <connection>scm:git:git://github.com/killbill/killbill-commons.git</connection>
-        <developerConnection>scm:git:git@github.com:killbill/killbill-commons.git</developerConnection>
-        <url>http://github.com/killbill/killbill-commons/tree/master</url>
+        <connection>scm:git:git://github.com/rocketlawyer/killbill-commons.git</connection>
+        <developerConnection>scm:git:git@github.com:rocketlawyer/killbill-commons.git</developerConnection>
+        <url>http://github.com/rocketlawyer/killbill-commons/tree/master</url>
     </scm>
     <issueManagement>
         <system>Github</system>
-        <url>http://github.com/killbill/killbill-commons</url>
+        <url>http://github.com/rocketlawyer/killbill-commons</url>
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
