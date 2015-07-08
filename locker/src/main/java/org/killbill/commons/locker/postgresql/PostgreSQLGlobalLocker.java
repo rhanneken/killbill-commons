@@ -35,7 +35,7 @@ import org.killbill.commons.locker.LockFailedException;
 public class PostgreSQLGlobalLocker implements GlobalLocker {
 
     private static final Logger logger = LoggerFactory.getLogger(PostgreSQLGlobalLocker.class);
-    private static final long DEFAULT_TIMEOUT_SECONDS = 10L;
+    private static final long DEFAULT_TIMEOUT_SECONDS = 1L;
 
     private final PostgreSQLGlobalLockDao lockDao = new PostgreSQLGlobalLockDao();
 
@@ -60,6 +60,12 @@ public class PostgreSQLGlobalLocker implements GlobalLocker {
             final GlobalLock lock = lock(lockName);
             if (lock != null) {
                 return lock;
+            } else if (tries_left > 0) {
+                try {
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(timeout));
+                } catch (InterruptedException e) {
+
+                }
             }
         }
 
@@ -111,7 +117,7 @@ public class PostgreSQLGlobalLocker implements GlobalLocker {
                 }
             }
         }
-        throw new LockFailedException();
+        return null;
     }
 
     private String getLockName(final String service, final String lockKey) {
