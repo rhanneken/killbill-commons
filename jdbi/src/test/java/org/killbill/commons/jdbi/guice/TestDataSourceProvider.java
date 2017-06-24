@@ -43,6 +43,9 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
+import org.h2.jdbcx.JdbcConnectionPool;
+import org.killbill.commons.embeddeddb.GenericStandaloneDB;
+import org.killbill.commons.embeddeddb.h2.H2EmbeddedDB;
 import org.skife.config.ConfigurationObjectFactory;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
@@ -51,6 +54,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 import com.zaxxer.hikari.HikariDataSource;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 public class TestDataSourceProvider {
@@ -58,6 +62,32 @@ public class TestDataSourceProvider {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(TestDataSourceProvider.class);
 
     private static final String TEST_POOL_PREFIX = "test-pool";
+
+    @Test(groups = "fast")
+    public void testDataSourceProviderNoPooling() throws Exception {
+        DataSourceProvider.DatabaseType databaseType;
+        DaoConfig daoConfig;
+        String poolName;
+        DataSourceProvider dataSourceProvider;
+
+        // H2
+        databaseType = DataSourceProvider.DatabaseType.H2;
+        daoConfig = buildDaoConfig(DataSourceConnectionPoolingType.NONE, databaseType);
+
+        poolName = TEST_POOL_PREFIX + "-nopool-" + databaseType;
+        dataSourceProvider = new DataSourceProvider(daoConfig, new H2EmbeddedDB(), poolName);
+
+        assertTrue(dataSourceProvider.get() instanceof JdbcConnectionPool);
+
+        // Generic
+        databaseType = DataSourceProvider.DatabaseType.GENERIC;
+        daoConfig = buildDaoConfig(DataSourceConnectionPoolingType.NONE, databaseType);
+
+        poolName = TEST_POOL_PREFIX + "-nopool-" + databaseType;
+        dataSourceProvider = new DataSourceProvider(daoConfig, new GenericStandaloneDB(null, null, null, null), poolName);
+
+        assertNull(dataSourceProvider.get());
+    }
 
     @Test(groups = "fast")
     public void testDataSourceProviderHikariCP() throws Exception {
@@ -71,7 +101,7 @@ public class TestDataSourceProvider {
         daoConfig = buildDaoConfig(DataSourceConnectionPoolingType.HIKARICP, databaseType);
 
         poolName = TEST_POOL_PREFIX + "-0-" + databaseType;
-        dataSourceProvider = new DataSourceProvider(daoConfig, poolName);
+        dataSourceProvider = new DataSourceProvider(daoConfig, null, poolName);
 
         assertTrue(dataSourceProvider.get() instanceof HikariDataSource);
 
@@ -80,7 +110,7 @@ public class TestDataSourceProvider {
         daoConfig = buildDaoConfig(DataSourceConnectionPoolingType.HIKARICP, databaseType);
 
         poolName = TEST_POOL_PREFIX + "-0-" + databaseType;
-        dataSourceProvider = new DataSourceProvider(daoConfig, poolName);
+        dataSourceProvider = new DataSourceProvider(daoConfig, null, poolName);
 
         assertTrue(dataSourceProvider.get() instanceof HikariDataSource);
     }
@@ -97,7 +127,7 @@ public class TestDataSourceProvider {
         final DaoConfig daoConfig = buildDaoConfig(properties);
 
         final String poolName = TEST_POOL_PREFIX + "-1";
-        final DataSource dataSource = new DataSourceProvider(daoConfig, poolName).get();
+        final DataSource dataSource = new DataSourceProvider(daoConfig, null, poolName).get();
         assertTrue(dataSource instanceof HikariDataSource);
 
         final HikariDataSource hikariDataSource = (HikariDataSource) dataSource;
@@ -117,7 +147,7 @@ public class TestDataSourceProvider {
         final DaoConfig daoConfig = buildDaoConfig(properties);
 
         final String poolName = TEST_POOL_PREFIX + "-2";
-        final DataSource dataSource = new DataSourceProvider(daoConfig, poolName, shouldUseMariaDB).get();
+        final DataSource dataSource = new DataSourceProvider(daoConfig, null, poolName, shouldUseMariaDB).get();
         assertTrue(dataSource instanceof HikariDataSource);
 
         final HikariDataSource hikariDataSource = (HikariDataSource) dataSource;
@@ -131,7 +161,7 @@ public class TestDataSourceProvider {
                 final DaoConfig daoConfig = buildDaoConfig(DataSourceConnectionPoolingType.C3P0, databaseType);
 
                 final String poolName = TEST_POOL_PREFIX + "-" + databaseType + "_C3P0";
-                final DataSourceProvider dataSourceProvider = new DataSourceProvider(daoConfig, poolName, shouldUseMariaDB);
+                final DataSourceProvider dataSourceProvider = new DataSourceProvider(daoConfig, null, poolName, shouldUseMariaDB);
 
                 final DataSource dataSource = dataSourceProvider.get();
                 assertTrue(dataSource instanceof ComboPooledDataSource);

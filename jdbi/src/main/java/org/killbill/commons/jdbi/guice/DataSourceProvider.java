@@ -18,6 +18,7 @@
 
 package org.killbill.commons.jdbi.guice;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
+import org.killbill.commons.embeddeddb.EmbeddedDB;
 import org.skife.config.TimeSpan;
 
 import com.codahale.metrics.MetricRegistry;
@@ -49,22 +51,29 @@ public class DataSourceProvider implements Provider<DataSource> {
     private Object metricRegistry;
     private Object healthCheckRegistry;
 
+    private EmbeddedDB embeddedDB;
+
     @VisibleForTesting
     static enum DatabaseType {
         GENERIC, MYSQL, H2, POSTGRESQL
     }
 
-    @Inject
     public DataSourceProvider(final DaoConfig config) {
         this(config, null);
     }
 
-    public DataSourceProvider(final DaoConfig config, final String poolName) {
-        this(config, poolName, true);
+    @Inject
+    public DataSourceProvider(final DaoConfig config, final EmbeddedDB embeddedDB) {
+        this(config, embeddedDB, null);
     }
 
-    public DataSourceProvider(final DaoConfig config, final String poolName, final boolean useMariaDB) {
+    public DataSourceProvider(final DaoConfig config, final EmbeddedDB embeddedDB, final String poolName) {
+        this(config, embeddedDB, poolName, true);
+    }
+
+    public DataSourceProvider(final DaoConfig config, final EmbeddedDB embeddedDB, final String poolName, final boolean useMariaDB) {
         this.config = config;
+        this.embeddedDB = embeddedDB;
         this.poolName = poolName;
         this.useMariaDB = useMariaDB;
         parseJDBCUrl();
@@ -96,16 +105,25 @@ public class DataSourceProvider implements Provider<DataSource> {
     }
 
     private DataSource buildDataSource() {
-        if (DataSourceConnectionPoolingType.C3P0.equals(config.getConnectionPoolingType())) {
-            loadDriver();
-            return new C3P0DataSourceBuilder().buildDataSource();
-        }
-
-        if (DataSourceConnectionPoolingType.HIKARICP.equals(config.getConnectionPoolingType())) {
-            if (dataSourceClassName != null) {
+        switch(config.getConnectionPoolingType()) {
+            case C3P0:
                 loadDriver();
-            }
-            return new HikariDataSourceBuilder().buildDataSource();
+                return new C3P0DataSourceBuilder().buildDataSource();
+            case HIKARICP:
+                if (dataSourceClassName != null) {
+                    loadDriver();
+                }
+                return new HikariDataSourceBuilder().buildDataSource();
+            case NONE:
+                try {
+                    embeddedDB.initialize();
+                    embeddedDB.start();
+                    return embeddedDB.getDataSource();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            default:
+                break;
         }
 
         throw new IllegalArgumentException("DataSource " + config.getConnectionPoolingType() + " unsupported");
